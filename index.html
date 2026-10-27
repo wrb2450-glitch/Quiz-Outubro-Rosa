@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="color-scheme" content="light">
+    <title>Quiz Outubro Rosa</title>
+    <style>
+        :root {
+            --rosa-fundo: #fce4ec;
+            --rosa-forte: #d81b60;
+            --texto: #333333;
+            --branco: #ffffff;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--rosa-fundo) !important;
+            color: var(--texto) !important;
+            margin: 0;
+            padding: 15px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        .cartao {
+            background-color: var(--branco);
+            border-radius: 12px;
+            padding: 20px;
+            width: 100%;
+            max-width: 400px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            text-align: center;
+        }
+
+        h1 {
+            color: var(--rosa-forte);
+            font-size: 24px;
+            margin-top: 0;
+        }
+
+        #contador {
+            font-size: 14px;
+            color: #666;
+            margin-bottom: 15px;
+            font-weight: bold;
+        }
+
+        .pergunta-texto {
+            font-size: 18px;
+            margin-bottom: 25px;
+            min-height: 80px;
+            line-height: 1.4;
+        }
+
+        .botoes-container {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+
+        button {
+            border: none;
+            border-radius: 8px;
+            padding: 15px;
+            font-size: 16px;
+            font-weight: bold;
+            color: white;
+            cursor: pointer;
+            width: 100%;
+            transition: opacity 0.2s;
+        }
+
+        button:active {
+            opacity: 0.8;
+        }
+
+        .btn-verdadeiro { background-color: #4CAF50; }
+        .btn-falso { background-color: #f44336; }
+        .btn-acao { background-color: var(--rosa-forte); margin-top: 15px; display: none; }
+        
+        .feedback {
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            font-size: 15px;
+            display: none;
+            line-height: 1.4;
+        }
+
+        .feedback-correto { background-color: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+        .feedback-incorreto { background-color: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+
+        #tela-resultado { display: none; }
+    </style>
+</head>
+<body>
+
+    <div class="cartao" id="tela-jogo">
+        <h1>🎀 Quiz Outubro Rosa</h1>
+        <div id="contador">Pergunta 1 de 8</div>
+        <div class="pergunta-texto" id="texto-pergunta">A carregar pergunta...</div>
+        
+        <div class="botoes-container" id="area-botoes">
+            <button class="btn-verdadeiro" onclick="verificarResposta('V')">Verdadeiro</button>
+            <button class="btn-falso" onclick="verificarResposta('F')">Falso</button>
+        </div>
+
+        <div id="caixa-feedback" class="feedback"></div>
+        <button id="btn-proxima" class="btn-acao" onclick="avancarPergunta()">Próxima Pergunta ➔</button>
+    </div>
+
+    <div class="cartao" id="tela-resultado">
+        <h1>Resultado Final 🎀</h1>
+        <h2 id="texto-pontuacao" style="font-size: 28px; margin: 20px 0;">0/8</h2>
+        <p>Obrigado por participar do quiz Outubro Rosa!</p>
+        <p>Só você pode fazer a diferença</p>
+        <p><strong>Turma de RH</strong></p>
+        <button class="btn-acao" style="display: block; width: 100%;" onclick="iniciar()">Jogar Novamente ↻</button>
+    </div>
+
+<script>
+    const todasPerguntas = [
+        {texto: "O autoexame é importante para conhecer o próprio corpo, mas não substitui a mamografia de rotina.", resposta: "V", explicacao: "O autoexame não substitui a precisão da mamografia na detecção de lesões milimétricas."},
+        {texto: "Homens também podem desenvolver câncer de mama, embora os casos sejam muito mais raros.", resposta: "V", explicacao: "Os homens também possuem tecido e glândulas mamárias em menor quantidade."},
+        {texto: "Praticar atividades físicas e manter uma boa alimentação ajudam a reduzir os riscos.", resposta: "V", explicacao: "Hábitos saudáveis reduzem em até 30% os riscos de desenvolver a doença."},
+        {texto: "O diagnóstico precoce aumenta as chances de cura em mais de 90%.", resposta: "V", explicacao: "Quanto mais cedo for identificado o tumor, maior a eficácia do tratamento."},
+        {texto: "Colocar prótese de silicone aumenta o risco de ter a doença.", resposta: "F", explicacao: "Os implantes não causam câncer, apenas exigem manobras adaptadas durante a mamografia."},
+        {texto: "Ter seios grandes aumenta as chances de desenvolver a doença.", resposta: "F", explicacao: "O tamanho é definido por gordura; o fator de atenção médica é a densidade do tecido glandular."},
+        {texto: "O câncer de mama causa sempre dor logo no início.", resposta: "F", explicacao: "A doença costuma ser totalmente silenciosa e indolor nos estágios iniciais."},
+        {texto: "O uso de desodorante antitranspirante causa a doença.", resposta: "F", explicacao: "Não existe nenhuma comprovação científica que ligue o desodorante ao surgimento de tumores."},
+        {texto: "O histórico familiar é um fator de risco, especialmente parentes de primeiro grau.", resposta: "V", explicacao: "Mães, irmãs ou filhas com histórico da doença aumentam a necessidade de acompanhamento precoce."},
+        {texto: "Usar sutiã com aro de metal ou muito apertado causa a doença.", resposta: "F", explicacao: "O tipo de roupa ou sutiã não interfere no surgimento de alterações celulares."},
+        {texto: "Mulheres que menstruaram muito cedo e entraram na menopausa tarde têm risco ligeiramente maior.", resposta: "V", explicacao: "Isso ocorre devido ao tempo prolongado de exposição aos hormônios estrogênio e progesterona."},
+        {texto: "Bater no peito ou sofrer um trauma na mama pode causar tumores malignos.", resposta: "F", explicacao: "Traumas podem causar hematomas ou nódulos benignos, mas não transformam células normais em câncer."},
+        {texto: "O consumo frequente e excessivo de álcool está associado ao aumento do risco.", resposta: "V", explicacao: "O álcool afeta o metabolismo hormonal no fígado, estimulando fatores de risco."},
+        {texto: "Todo nódulo ou caroço encontrado na mama é sinal definitivo de câncer.", resposta: "F", explicacao: "A grande maioria dos nódulos é benigna (como cistos e fibroadenomas), mas todos devem ser avaliados."},
+        {texto: "A mamografia pode detectar tumores milimétricos muito antes de serem palpáveis.", resposta: "V", explicacao: "Por isso a mamografia periódica é o principal exame preventivo."},
+        {texto: "Fazer mamografias com frequência causa câncer devido à radiação do aparelho.", resposta: "F", explicacao: "A dose de radiação do mamógrafo é extremamente baixa e totalmente segura."},
+        {texto: "O tabagismo também é considerado um fator de risco para o câncer de mama.", resposta: "V", explicacao: "As substâncias tóxicas do cigarro prejudicam o DNA celular e a imunidade."},
+        {texto: "Se a mamografia der resultado normal este ano, a mulher não precisa mais fazer exames.", resposta: "F", explicacao: "A prevenção deve ser contínua e o exame refeito conforme orientação médica."},
+        {texto: "Alterações na pele do seio, como vermelhidão ou aspecto de 'casca de laranja', são sinais de alerta.", resposta: "V", explicacao: "Qualquer mudança visual na textura ou cor da pele deve ser investigada por um médico."},
+        {texto: "O câncer de mama é uma doença contagiosa transmissível pelo contato físico.", resposta: "F", explicacao: "É uma doença genética/celular interna, sendo impossível transmiti-la a outra pessoa."},
+        {texto: "Secreção saindo pelo mamilo espontaneamente deve ser investigada.", resposta: "V", explicacao: "A saída de fluido transparente ou com sangue sem apertar o mamilo exige avaliação técnica."},
+        {texto: "Apenas mulheres idosas correm o risco de desenvolver a doença.", resposta: "F", explicacao: "Embora mais comum após os 50 anos, mulheres jovens também podem desenvolver a doença."},
+        {texto: "Mulheres que nunca engravidaram têm um risco ligeiramente maior.", resposta: "V", explicacao: "A gestação e a amamentação reduzem os ciclos menstruais e a exposição hormonal contínua."},
+        {texto: "Comer muito açúcar causa a doença de forma direta e imediata.", resposta: "F", explicacao: "O açúcar não causa câncer diretamente, mas o consumo em excesso leva à obesidade, que é fator de risco."},
+        {texto: "Terapias de reposição hormonal prolongadas na menopausa podem aumentar as chances.", resposta: "V", explicacao: "O uso prolongado de hormônios requer acompanhamento médico rigoroso."},
+        {texto: "Mulheres que fazem mastectomia (retirada da mama) nunca mais podem reconstruir o seio.", resposta: "F", explicacao: "A reconstrução mamária é um direito garantido e pode ser feita na mesma cirurgia de retirada."},
+        {texto: "Homens que percebem inchaço, retração do mamilo ou nódulos no peito devem procurar um médico.", resposta: "V", explicacao: "Sendo raros, os casos masculinos costumam ser descobertos tardiamente por falta de informação."},
+        {texto: "O excesso de peso corporal, principalmente após a menopausa, aumenta o risco de câncer de mama.", resposta: "V", explicacao: "O tecido adiposo (gordura) produz hormônios que podem estimular o surgimento de tumores."},
+        {texto: "O autoexame das mamas deve ser feito preferencialmente cerca de 7 dias após a menstruação.", resposta: "V", explicacao: "Nesse período, as mamas estão menos inchadas e menos doloridas, facilitando a palpação."},
+        {texto: "O câncer de mama é o tipo de câncer mais frequente entre as mulheres no Brasil.", resposta: "V", explicacao: "Excluindo os tumores de pele não melanoma, é o câncer de maior incidência no público feminino."},
+        {texto: "Amamentar ajuda a proteger a mulher contra o câncer de mama.", resposta: "V", explicacao: "A amamentação reduz a quantidade de hormônios que estimulam as células mamárias e promove a maturação tecidual."},
+        {texto: "Quem não sente nenhum sintoma ou caroço no peito não precisa fazer mamografia.", resposta: "F", explicacao: "A mamografia serve justamente para detectar alterações subclínicas, antes que qualquer sintoma apareça."},
+        {texto: "A ultrassonografia da mama substitui totalmente a necessidade da mamografia.", resposta: "F", explicacao: "O ultrassom é um exame complementar valioso, mas não substitui a mamografia na detecção de microcalcificações."},
+        {texto: "Homens com histórico familiar de câncer de mama também devem ficar atentos.", resposta: "V", explicacao: "Mutações nos genes BRCA1 e BRCA2 podem ser herdadas por homens e aumentar o risco celular."},
+        {texto: "Consumir apenas alimentos orgânicos garante 100% de proteção contra o câncer.", resposta: "F", explicacao: "Alimentos orgânicos são saudáveis, mas o câncer é multifatorial e não existe imunidade total por alimento."},
+        {texto: "Procedimentos de laqueadura ou vasectomia aumentam o risco de câncer de mama.", resposta: "F", explicacao: "Esterilizaciones cirúrgicas não afetam o tecido mamário nem alteram os riscos da doença."},
+        {texto: "O estresse emocional forte causa câncer de mama de forma direta.", resposta: "F", explicacao: "O estresse reduz a imunidade geral, mas não há comprovação de que crie células cancerígenas diretamente."},
+        {texto: "O autoexame deve incluir observação no espelho, palpação em pé e também deitada.", resposta: "V", explicacao: "Variar a posição ajuda a examinar a mama sob diferentes ângulos e planos de gravidade."},
+        {texto: "Mulheres após a menopausa não precisam mais fazer mamografia.", resposta: "F", explicacao: "O risco de desenvolver câncer de mama aumenta com a idade, tornando o exame ainda mais importante."},
+        {texto: "O laço rosa surgiu na década de 1990 para simbolizar a luta mundial contra o câncer de mama.", resposta: "V", explicacao: "O laço rosa foi distribuído pela primeira vez na corrida pela cura em NY e virou símbolo internacional."}
+    ];
+
+    let perguntasDisponiveis = [];
+    let quizAtual = [];
+    let indice = 0;
+    let pontuacao = 0;
+
+    function iniciar() {
+        if (!perguntasDisponiveis || perguntasDisponiveis.length < 8) {
+            perguntasDisponiveis = todasPerguntas.slice();
+        }
+
+        perguntasDisponiveis.sort(function() { return 0.5 - Math.random(); });
+        quizAtual = perguntasDisponiveis.splice(0, 8);
+        
+        indice = 0;
+        pontuacao = 0;
+
+        var elResultado = document.getElementById('tela-resultado');
+        var elJogo = document.getElementById('tela-jogo');
+        if (elResultado) elResultado.style.display = 'none';
+        if (elJogo) elJogo.style.display = 'block';
+
+        mostrarPergunta();
+    }
+
+    function mostrarPergunta() {
+        var elTexto = document.getElementById('texto-pergunta');
+        var elContador = document.getElementById('contador');
+        var elBotoes = document.getElementById('area-botoes');
+        var elProxima = document.getElementById('btn-proxima');
+        var elFeedback = document.getElementById('caixa-feedback');
+
+        if (elTexto) elTexto.innerText = quizAtual[indice].texto;
+        if (elContador) elContador.innerText = 'Pergunta ' + (indice + 1) + ' de 8';
+        
+        if (elBotoes) elBotoes.style.display = 'flex';
+        if (elProxima) elProxima.style.display = 'none';
+        if (elFeedback) elFeedback.style.display = 'none';
+    }
+
+    function verificarResposta(respostaDada) {
+        var pergunta = quizAtual[indice];
+        var caixaFeedback = document.getElementById('caixa-feedback');
+        var elBotoes = document.getElementById('area-botoes');
+        var elProxima = document.getElementById('btn-proxima');
+        
+        if (elBotoes) elBotoes.style.display = 'none';
+        
+        if (respostaDada === pergunta.resposta) {
+            pontuacao++;
+            caixaFeedback.className = 'feedback feedback-correto';
+            caixaFeedback.innerHTML = '<strong>✅ Correto!</strong><br><br>' + pergunta.explicacao;
+        } else {
+            caixaFeedback.className = 'feedback feedback-incorreto';
+            caixaFeedback.innerHTML = '<strong>❌ Errado!</strong><br><br>' + pergunta.explicacao;
+        }
+        
+        if (caixaFeedback) caixaFeedback.style.display = 'block';
+        if (elProxima) elProxima.style.display = 'block';
+    }
+
+    function avancarPergunta() {
+        indice++;
+        if (indice < 8) {
+            mostrarPergunta();
+        } else {
+            var elJogo = document.getElementById('tela-jogo');
+            var elResultado = document.getElementById('tela-resultado');
+            var elPontuacao = document.getElementById('texto-pontuacao');
+
+            if (elJogo) elJogo.style.display = 'none';
+            if (elResultado) elResultado.style.display = 'block';
+            if (elPontuacao) elPontuacao.innerText = pontuacao + ' de 8';
+        }
+    }
+
+    // Inicialização segura para iOS / Safari
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', iniciar);
+    } else {
+        iniciar();
+    }
+</script>
+</body>
+</html>
